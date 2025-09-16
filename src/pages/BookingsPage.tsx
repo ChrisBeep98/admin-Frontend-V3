@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Grid,
   Chip,
   Alert,
   CircularProgress,
@@ -26,10 +25,9 @@ import {
 } from '@mui/material';
 import {
   Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon
+  Delete as DeleteIcon
 } from '@mui/icons-material';
-import { getAllBookings, updateBooking, deleteBooking, getAllTours } from '../services/api';
+import { getAllBookings, deleteBooking, getAllTours } from '../services/api';
 import BookingDetailsDialog from '../components/BookingDetailsDialog';
 
 interface Booking {
@@ -63,18 +61,8 @@ const BookingsPage = () => {
   const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
 
-  const [formData, setFormData] = useState({
-    tour_id: null as number | null,
-    status: 'pending' as 'pending' | 'confirmed' | 'canceled' | 'unpaired',
-    full_name: '' as string,
-    note: '',
-    document: '' as string,
-    phone: '' as string,
-    nationality: '' as string,
-    number_of_people: '' as string,
-    applied_price: '' as string, // keep as text for input control
-    departure_date: '' as string // YYYY-MM-DD
-  });
+  // Removed inline modal form state; using shared BookingDetailsDialog
+  // Keeping placeholder to avoid large diff context in future edits
 
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
@@ -128,9 +116,8 @@ const BookingsPage = () => {
 
   // No longer used: updates handled by shared dialog
   // Keeping function in case of future inline updates
-  const handleSubmit = async () => {
-    return;
-  };
+  // Removed, handled by shared dialog
+  // const handleSubmit = async () => {};
 
   const handleDelete = async () => {
     if (bookingToDelete) {

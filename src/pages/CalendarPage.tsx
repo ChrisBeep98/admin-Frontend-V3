@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Container,
@@ -7,17 +7,12 @@ import {
   Grid,
   Paper,
   Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Chip,
   Snackbar,
   Alert
 } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
-import { getAllBookings, updateBooking, getAllTours } from '../services/api';
+import { getAllBookings, getAllTours } from '../services/api';
 import BookingDetailsDialog from '../components/BookingDetailsDialog';
 
 interface Booking {
@@ -113,16 +108,8 @@ const CalendarPage: React.FC = () => {
     }
   };
 
-  const updateSelectedBookingStatus = async (status: Booking['status']) => {
-    if (!selectedBooking) return;
-    try {
-      await updateBooking({ id: selectedBooking.id, status });
-      await refreshBookings();
-      setToast({ open: true, message: 'Booking updated', severity: 'success' });
-    } catch {
-      setToast({ open: true, message: 'Update failed', severity: 'error' });
-    }
-  };
+  // Note: status updates are handled inside the shared dialog. Keeping a no-op placeholder for future inline actions.
+  // const updateSelectedBookingStatus = async (status: Booking['status']) => {};
 
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const weekNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];

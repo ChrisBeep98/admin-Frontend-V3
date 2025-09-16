@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -639,7 +639,7 @@ const ToursPage = () => {
       <Dialog open={detailsOpen} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
         <DialogTitle>Tour Details {selectedTour ? `- ${selectedTour.name}` : ''}</DialogTitle>
         <DialogContent dividers>
-          <Tabs value={detailsTab} onChange={(e, v) => setDetailsTab(v)} sx={{ mb: 2 }}>
+          <Tabs value={detailsTab} onChange={(_, v) => setDetailsTab(v)} sx={{ mb: 2 }}>
             <Tab label="Info" />
             <Tab label="Itinerary" />
           </Tabs>
