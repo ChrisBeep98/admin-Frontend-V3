@@ -72,11 +72,11 @@ const DashboardPage = () => {
       stats: `${stats.pendingBookings} pending / ${stats.totalBookings} total`
     },
     {
-      title: 'Itineraries Management',
-      description: 'Manage day-by-day tour activities',
+      title: 'Calendar',
+      description: 'Visual calendar of bookings with day KPIs',
       icon: <ItinerariesIcon sx={{ fontSize: 40 }} />,
-      action: () => navigate('/itineraries'),
-      stats: 'Coming soon'
+      action: () => navigate('/calendar'),
+      stats: 'Open to view schedule'
     }
   ];
 

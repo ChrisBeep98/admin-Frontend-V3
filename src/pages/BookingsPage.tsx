@@ -21,7 +21,8 @@ import {
   Alert,
   CircularProgress,
   MenuItem,
-  Button
+  Button,
+  Snackbar
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -65,6 +66,12 @@ const BookingsPage = () => {
     tour_id: null as number | null,
     status: 'pending' as 'pending' | 'confirmed' | 'canceled' | 'unpaired',
     note: ''
+  });
+
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success'
   });
 
   useEffect(() => {
@@ -128,6 +135,7 @@ const BookingsPage = () => {
           payload.tour_id = formData.tour_id;
         }
         await updateBooking(payload);
+        setToast({ open: true, message: 'Booking updated successfully', severity: 'success' });
         handleCloseDialog();
         loadBookings();
       } catch (err) {
@@ -207,7 +215,12 @@ const BookingsPage = () => {
               </TableHead>
               <TableBody>
                 {bookings.map((booking) => (
-                  <TableRow key={booking.id}>
+                  <TableRow
+                    key={booking.id}
+                    hover
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => handleOpenDialog(booking)}
+                  >
                     <TableCell>
                       <Box>
                         <Typography variant="subtitle2">{booking.full_name}</Typography>
@@ -228,11 +241,12 @@ const BookingsPage = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton onClick={() => handleOpenDialog(booking)} size="small">
+                      <IconButton onClick={(e) => { e.stopPropagation(); handleOpenDialog(booking); }} size="small">
                         <EditIcon />
                       </IconButton>
                       <IconButton
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setBookingToDelete(booking);
                           setDeleteConfirmOpen(true);
                         }}
@@ -333,6 +347,16 @@ const BookingsPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setToast((prev) => ({ ...prev, open: false }))} severity={toast.severity} sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

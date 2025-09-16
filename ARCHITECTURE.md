@@ -1,6 +1,6 @@
 # Nevado Trek Admin Frontend — Architecture & Project Context
 
-Version: 1.0
+Version: 1.1
 Last Updated: 2025-09-16
 
 This document provides a complete technical context for the Nevado Trek Admin Frontend. It covers goals, scope, architecture, module responsibilities, data models, flows, testing, and a roadmap to keep the project cohesive as it evolves.
@@ -67,9 +67,10 @@ Top-level (admin-frontend):
     - AuthContext.tsx — Simple auth store using localStorage; login(token), logout()
   - pages/
     - LoginPage.tsx — Token entry + validation (using a protected API call)
-    - DashboardPage.tsx — Aggregate stats & quick navigation
+    - DashboardPage.tsx — Aggregate stats & quick navigation (Calendar quick action)
     - ToursPage.tsx — Tours CRUD + Itinerary management (inside details modal)
     - BookingsPage.tsx — Bookings list, filter, edit (status/note/tour reassignment), delete
+    - CalendarPage.tsx — Interactive bookings calendar (navigate months, hover day to list bookings, open/edit)
   - router/
     - AppRouter.tsx — Route definitions; protects admin routes via ProtectedRoute
   - services/

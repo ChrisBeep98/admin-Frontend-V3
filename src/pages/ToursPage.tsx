@@ -23,14 +23,15 @@ import {
   CircularProgress,
   Tabs,
   Tab,
-  MenuItem
+  MenuItem,
+  Snackbar
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { getAllTours, createTour, updateTour, deleteTour, getItineraries, createItinerary, updateItinerary, deleteItinerary } from '../services/api';
+import { getAllTours, createTour, updateTour, deleteTour, getItineraries, createItinerary, updateItinerary, deleteItinerary, getAllBookings, updateBooking } from '../services/api';
 
 interface Tour {
   id: number;
@@ -100,6 +101,13 @@ const ToursPage = () => {
   const [itineraries, setItineraries] = useState<Itinerary[]>([]);
   const [itinerariesLoading, setItinerariesLoading] = useState(false);
   const [itineraryError, setItineraryError] = useState('');
+
+  // Toast notifications
+  const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -198,8 +206,10 @@ const ToursPage = () => {
 
       if (editingTour) {
         await updateTour({ ...tourData, id: editingTour.id });
+        setToast({ open: true, message: 'Tour updated successfully', severity: 'success' });
       } else {
         await createTour(tourData);
+        setToast({ open: true, message: 'Tour created successfully', severity: 'success' });
       }
 
       handleCloseDialog();
@@ -213,9 +223,26 @@ const ToursPage = () => {
     if (!tourToDelete) return;
     try {
       setLoading(true);
+
+      // 1) Fetch bookings for this tour to preserve previous attachment in notes
+      const bookings = await getAllBookings({ tour_id: tourToDelete.id });
+      for (const b of Array.isArray(bookings) ? bookings : []) {
+        try {
+          const prev = b.note ? `${b.note}\n` : '';
+          const newNote = `${prev}Previously attached to tour: ${tourToDelete.name} (id: ${tourToDelete.id})`;
+          await updateBooking({ id: b.id, note: newNote });
+        } catch (e) {
+          // non-blocking: continue updating other bookings
+          console.warn('Failed to annotate booking note', b.id, e);
+        }
+      }
+
+      // 2) Delete the tour (backend will mark affected bookings as unpaired)
       await deleteTour(tourToDelete.id);
+
       setDeleteConfirmOpen(false);
       setTourToDelete(null);
+      setToast({ open: true, message: 'Tour deleted successfully', severity: 'success' });
       await loadTours();
     } catch (err) {
       setError('Error deleting tour');
@@ -280,6 +307,7 @@ const ToursPage = () => {
         recommendations: detailsForm.recommendations.split(',').map(s => s.trim()).filter(s => s)
       } as any;
       await updateTour({ ...tourData, id: selectedTour.id });
+      setToast({ open: true, message: 'Tour info updated', severity: 'success' });
       await loadTours();
     } catch (err) {
       setError('Error updating tour');
@@ -329,12 +357,14 @@ const ToursPage = () => {
       try {
         await deleteItinerary(it.id);
         const tourId = it.tour_id;
+        setToast({ open: true, message: 'Itinerary day deleted', severity: 'success' });
         await loadItinerariesForTour(tourId);
       } catch (err) {
         setItineraryError('Error deleting itinerary');
       }
     } else {
       setItineraries(prev => prev.filter((_, i) => i !== index));
+      setToast({ open: true, message: 'Itinerary day removed', severity: 'success' });
     }
   };
 
@@ -343,8 +373,10 @@ const ToursPage = () => {
     try {
       if (it.id) {
         await updateItinerary({ id: it.id, day: it.day, activities: it.activities });
+        setToast({ open: true, message: 'Itinerary updated', severity: 'success' });
       } else {
         await createItinerary({ tour_id: it.tour_id, day: it.day, activities: it.activities });
+        setToast({ open: true, message: 'Itinerary day created', severity: 'success' });
       }
       await loadItinerariesForTour(it.tour_id);
     } catch (err) {
@@ -868,6 +900,17 @@ const ToursPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setToast((prev) => ({ ...prev, open: false }))} severity={toast.severity} sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
