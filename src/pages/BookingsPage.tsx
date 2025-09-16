@@ -30,6 +30,7 @@ import {
   Visibility as ViewIcon
 } from '@mui/icons-material';
 import { getAllBookings, updateBooking, deleteBooking, getAllTours } from '../services/api';
+import BookingDetailsDialog from '../components/BookingDetailsDialog';
 
 interface Booking {
   id: number;
@@ -65,6 +66,7 @@ const BookingsPage = () => {
   const [formData, setFormData] = useState({
     tour_id: null as number | null,
     status: 'pending' as 'pending' | 'confirmed' | 'canceled' | 'unpaired',
+    full_name: '' as string,
     note: '',
     document: '' as string,
     phone: '' as string,
@@ -116,17 +118,6 @@ const BookingsPage = () => {
 
   const handleOpenDialog = (booking: Booking) => {
     setSelectedBooking(booking);
-    setFormData({
-      tour_id: booking.tour_id ?? null,
-      status: booking.status,
-      note: booking.note || '',
-      document: booking.document || '',
-      phone: booking.phone || '',
-      nationality: booking.nationality || '',
-      number_of_people: booking.number_of_people != null ? String(booking.number_of_people) : '',
-      applied_price: booking.applied_price != null ? String(booking.applied_price) : '',
-      departure_date: booking.departure_date ? booking.departure_date.slice(0, 10) : ''
-    });
     setOpenDialog(true);
   };
 
@@ -135,39 +126,10 @@ const BookingsPage = () => {
     setSelectedBooking(null);
   };
 
+  // No longer used: updates handled by shared dialog
+  // Keeping function in case of future inline updates
   const handleSubmit = async () => {
-    if (selectedBooking) {
-      try {
-        const payload: any = {
-          id: selectedBooking.id,
-          status: formData.status,
-          note: formData.note,
-          document: formData.document,
-          phone: formData.phone,
-          nationality: formData.nationality
-        };
-        if (formData.applied_price !== '') {
-          const price = Number(formData.applied_price);
-          if (!Number.isNaN(price)) payload.applied_price = price;
-        }
-        if (formData.departure_date) {
-          payload.departure_date = formData.departure_date; // already YYYY-MM-DD
-        }
-        if (formData.number_of_people !== '') {
-          const num = Number(formData.number_of_people);
-          if (!Number.isNaN(num) && num > 0) payload.number_of_people = num;
-        }
-        if (formData.tour_id != null) {
-          payload.tour_id = formData.tour_id;
-        }
-        await updateBooking(payload);
-        setToast({ open: true, message: 'Booking updated successfully', severity: 'success' });
-        handleCloseDialog();
-        loadBookings();
-      } catch (err) {
-        setError('Error updating booking');
-      }
-    }
+    return;
   };
 
   const handleDelete = async () => {
@@ -290,133 +252,13 @@ const BookingsPage = () => {
         )}
       </Box>
 
-      {/* Booking Edit Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Booking</DialogTitle>
-        <DialogContent>
-          {selectedBooking && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <Typography variant="h6">Customer: {selectedBooking.full_name}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  People: {selectedBooking.number_of_people}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Tour"
-                  value={formData.tour_id ?? ''}
-                  onChange={(e) => {
-                    const val = e.target.value as any;
-                    setFormData({ ...formData, tour_id: val === '' ? null : Number(val) });
-                  }}
-                >
-                  <MenuItem value="">Unpaired</MenuItem>
-                  {tours.map((t) => (
-                    <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="Departure Date"
-                  InputLabelProps={{ shrink: true }}
-                  value={formData.departure_date}
-                  onChange={(e) => setFormData({ ...formData, departure_date: e.target.value })}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Applied Price"
-                  type="number"
-                  value={formData.applied_price}
-                  onChange={(e) => setFormData({ ...formData, applied_price: e.target.value })}
-                  placeholder="Auto from tour tier or override"
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Status"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                >
-                  <MenuItem value="pending">Pending</MenuItem>
-                  <MenuItem value="confirmed">Confirmed</MenuItem>
-                  <MenuItem value="canceled">Canceled</MenuItem>
-                  <MenuItem value="unpaired">Unpaired</MenuItem>
-                </TextField>
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Document"
-                  value={formData.document}
-                  onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Nationality"
-                  value={formData.nationality}
-                  onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Number of People"
-                  value={formData.number_of_people}
-                  onChange={(e) => setFormData({ ...formData, number_of_people: e.target.value })}
-                  inputProps={{ min: 1 }}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  label="Notes"
-                  value={formData.note}
-                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                  placeholder="Add any notes about this booking..."
-                />
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            Update Booking
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <BookingDetailsDialog
+        open={openDialog}
+        booking={selectedBooking}
+        tours={tours}
+        onClose={handleCloseDialog}
+        onSaved={loadBookings}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>

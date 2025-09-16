@@ -1,6 +1,6 @@
 # Nevado Trek Admin Frontend — Architecture & Project Context
 
-Version: 1.2
+Version: 1.3
 Last Updated: 2025-09-16
 
 This document provides a complete technical context for the Nevado Trek Admin Frontend. It covers goals, scope, architecture, module responsibilities, data models, flows, testing, and a roadmap to keep the project cohesive as it evolves.
@@ -63,14 +63,15 @@ Top-level (admin-frontend):
   - assets/
   - components/
     - ProtectedRoute.tsx — Router guard; checks if a token exists (presence-based gate)
+    - BookingDetailsDialog.tsx — Shared two-phase booking details modal (view-only + edit). Used by Bookings and Calendar pages. Handles editing: full_name, tour, departure_date, applied_price, status, document, phone, nationality, number_of_people, note; saves via API and notifies parent via `onSaved`.
   - contexts/
     - AuthContext.tsx — Simple auth store using localStorage; login(token), logout()
   - pages/
     - LoginPage.tsx — Token entry + validation (using a protected API call)
     - DashboardPage.tsx — Aggregate stats & quick navigation (Calendar quick action)
     - ToursPage.tsx — Tours CRUD + Itinerary management (inside details modal)
-    - BookingsPage.tsx — Bookings list, filter, edit (status/note/tour reassignment, applied price, departure date), delete
-    - CalendarPage.tsx — Interactive bookings calendar (navigate months, hover day to list bookings, open/edit)
+    - BookingsPage.tsx — Bookings list, filter; opens shared booking details modal; delete booking
+    - CalendarPage.tsx — Interactive bookings calendar; opens shared booking details modal
   - router/
     - AppRouter.tsx — Route definitions; protects admin routes via ProtectedRoute
   - services/
@@ -95,9 +96,20 @@ Module responsibilities:
   - Create/Edit via dialog
   - Details modal includes itinerary CRUD (days, activities)
   - Delete tour: invokes `delete_tour`; relies on backend to mark bookings as `unpaired`
+- BookingDetailsDialog (shared):
+  - Two-phase UX: initial view-only, then Edit toggles input mode
+  - Saves via `update_booking`, including: `full_name`, `status`, `note`, `document`, `phone`, `nationality`, `number_of_people`, `applied_price`, `departure_date`, and `tour_id`
+  - On save: calls optional `onSaved` (parents use to re-fetch) and closes
 - BookingsPage:
   - Lists bookings; filter by status (includes `unpaired`)
-  - Edit dialog: update status & note and optionally reassign to a tour (select tour or set to unpaired)
+  - Opens shared BookingDetailsDialog for consistent UX
+  - After save, re-fetches list via `onSaved`
+  - Displays departure_date as raw `YYYY-MM-DD` to avoid timezone shifts
+- CalendarPage:
+  - Month navigation, day hover-popover with bookings
+  - Uses shared BookingDetailsDialog for the same two-phase UX
+  - Re-fetches bookings on month/year change and on window focus; also after saves
+  - Buckets bookings by parsing `departure_date` as `YYYY-MM-DD` parts to avoid timezone issues
 
 ---
 
@@ -188,13 +200,15 @@ Itinerary Management
 
 Bookings Management
 - List bookings; filter by status (includes `unpaired`)
-- Edit booking: change status, note; select a tour to (re)assign or set to Unpaired; edit applied price; change departure date
+- Open booking → shared details modal opens in view-only mode
+- Click Edit → modal switches to edit mode; fields: full_name, tour, departure_date, applied_price, status, document, phone, nationality, number_of_people, note
+- Save → updates via API; parent re-fetches list; departure_date shown as raw `YYYY-MM-DD` to avoid timezone shifts
 - Delete booking when necessary
 
 Calendar
 - Navigate months; each day shows KPI chip with count of bookings
-- Hover a day to see bookings; click an item to open Edit Booking dialog
-- From dialog: update status and optionally applied price or date
+- Hover a day to see bookings; click an item to open the shared details modal (same two-phase UX)
+- Data freshness: re-fetch on month/year change, on window focus, and after saves; bucket bookings by parsing `YYYY-MM-DD` parts to avoid timezone-based day shifts
 
 ---
 
@@ -307,4 +321,5 @@ UX
 - Router: `src/router/AppRouter.tsx`
 - Auth: `src/contexts/AuthContext.tsx`, `src/components/ProtectedRoute.tsx`
 - Services: `src/services/api.ts`
+- Components: `src/components/BookingDetailsDialog.tsx`
 - Pages: `src/pages/*`

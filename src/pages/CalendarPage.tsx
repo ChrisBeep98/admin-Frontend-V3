@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { getAllBookings, updateBooking, getAllTours } from '../services/api';
+import BookingDetailsDialog from '../components/BookingDetailsDialog';
 
 interface Booking {
   id: number;
@@ -60,7 +61,7 @@ const CalendarPage: React.FC = () => {
         console.error('Failed loading calendar data', e);
       }
     })();
-  }, []);
+  }, [year, month]);
 
   const days = useMemo(() => {
     const total = daysInMonth(year, month);
@@ -75,12 +76,14 @@ const CalendarPage: React.FC = () => {
   const bookingsByDay = useMemo(() => {
     const map = new Map<number, Booking[]>();
     for (const b of bookings) {
-      const d = new Date(b.departure_date);
-      if (d.getFullYear() === year && d.getMonth() === month) {
-        const day = d.getDate();
-        const arr = map.get(day) || [];
+      // Avoid timezone shifts: parse as YYYY-MM-DD parts
+      const [yyyy, mm, dd] = b.departure_date.split('-').map(Number);
+      if (!yyyy || !mm || !dd) continue;
+      const d = { y: yyyy, m: mm - 1, day: dd };
+      if (d.y === year && d.m === month) {
+        const arr = map.get(d.day) || [];
         arr.push(b);
-        map.set(day, arr);
+        map.set(d.day, arr);
       }
     }
     return map;
@@ -101,11 +104,20 @@ const CalendarPage: React.FC = () => {
     return t ? t.name : `Tour #${tourId}`;
   };
 
+  const refreshBookings = async () => {
+    try {
+      const b = await getAllBookings();
+      setBookings(b);
+    } catch (e) {
+      console.error('Failed reloading bookings', e);
+    }
+  };
+
   const updateSelectedBookingStatus = async (status: Booking['status']) => {
     if (!selectedBooking) return;
     try {
       await updateBooking({ id: selectedBooking.id, status });
-      setBookings(prev => prev.map(b => b.id === selectedBooking.id ? { ...b, status } : b));
+      await refreshBookings();
       setToast({ open: true, message: 'Booking updated', severity: 'success' });
     } catch {
       setToast({ open: true, message: 'Update failed', severity: 'error' });
@@ -114,6 +126,15 @@ const CalendarPage: React.FC = () => {
 
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const weekNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // When returning to this page, reload data to avoid stale bookings
+  useEffect(() => {
+    const handleFocus = () => {
+      getAllBookings().then(setBookings).catch(() => {});
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   return (
     <Container maxWidth="xl">
@@ -169,31 +190,13 @@ const CalendarPage: React.FC = () => {
           })}
         </Grid>
 
-        <Dialog open={!!selectedBooking} onClose={() => setSelectedBooking(null)} maxWidth="sm" fullWidth>
-          <DialogTitle>Booking Details</DialogTitle>
-          <DialogContent>
-            {selectedBooking && (
-              <>
-                <Typography variant="h6">{selectedBooking.full_name}</Typography>
-                <Typography variant="body2">Tour: {getTourName(selectedBooking.tour_id)}</Typography>
-                <Typography variant="body2">People: {selectedBooking.number_of_people}</Typography>
-                <Typography variant="body2">Departure: {new Date(selectedBooking.departure_date).toLocaleDateString()}</Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>Status: <Chip size="small" label={selectedBooking.status} /></Typography>
-              </>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setSelectedBooking(null)}>Close</Button>
-            {selectedBooking && (
-              <>
-                <Button onClick={() => updateSelectedBookingStatus('pending')}>Mark Pending</Button>
-                <Button onClick={() => updateSelectedBookingStatus('confirmed')}>Confirm</Button>
-                <Button onClick={() => updateSelectedBookingStatus('canceled')}>Cancel</Button>
-                <Button onClick={() => updateSelectedBookingStatus('unpaired')}>Unpair</Button>
-              </>
-            )}
-          </DialogActions>
-        </Dialog>
+        <BookingDetailsDialog
+          open={!!selectedBooking}
+          booking={selectedBooking}
+          tours={tours}
+          onClose={() => setSelectedBooking(null)}
+          onSaved={refreshBookings}
+        />
 
         <Snackbar
           open={toast.open}
