@@ -30,7 +30,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { getAllTours, createTour, updateTour, deleteTour, getItineraries, createItinerary, updateItinerary, deleteItinerary } from '../services/api';
+import { getAllTours, createTour, updateTour, deleteTour, getItineraries, createItinerary, updateItinerary, deleteItinerary, getAllBookings, deleteBooking } from '../services/api';
 
 interface Tour {
   id: number;
@@ -210,15 +210,36 @@ const ToursPage = () => {
   };
 
   const handleDelete = async () => {
-    if (tourToDelete) {
-      try {
-        await deleteTour(tourToDelete.id);
-        setDeleteConfirmOpen(false);
-        setTourToDelete(null);
-        loadTours();
-      } catch (err) {
-        setError('Error deleting tour');
+    if (!tourToDelete) return;
+    try {
+      setLoading(true);
+      // Delete related bookings first to avoid FK constraints
+      const bookings: any[] = await getAllBookings({ tour_id: tourToDelete.id });
+      if (Array.isArray(bookings)) {
+        for (const b of bookings) {
+          if (b?.id != null) {
+            await deleteBooking(b.id);
+          }
+        }
       }
+      // Delete related itineraries
+      const its: Itinerary[] = await getItineraries({ tour_id: tourToDelete.id });
+      if (Array.isArray(its)) {
+        for (const it of its) {
+          if (it.id != null) {
+            await deleteItinerary(it.id);
+          }
+        }
+      }
+      // Finally delete the tour
+      await deleteTour(tourToDelete.id);
+      setDeleteConfirmOpen(false);
+      setTourToDelete(null);
+      await loadTours();
+    } catch (err) {
+      setError('Error deleting tour');
+    } finally {
+      setLoading(false);
     }
   };
 
