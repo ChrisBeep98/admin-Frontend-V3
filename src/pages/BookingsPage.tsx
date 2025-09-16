@@ -66,6 +66,10 @@ const BookingsPage = () => {
     tour_id: null as number | null,
     status: 'pending' as 'pending' | 'confirmed' | 'canceled' | 'unpaired',
     note: '',
+    document: '' as string,
+    phone: '' as string,
+    nationality: '' as string,
+    number_of_people: '' as string,
     applied_price: '' as string, // keep as text for input control
     departure_date: '' as string // YYYY-MM-DD
   });
@@ -116,6 +120,10 @@ const BookingsPage = () => {
       tour_id: booking.tour_id ?? null,
       status: booking.status,
       note: booking.note || '',
+      document: booking.document || '',
+      phone: booking.phone || '',
+      nationality: booking.nationality || '',
+      number_of_people: booking.number_of_people != null ? String(booking.number_of_people) : '',
       applied_price: booking.applied_price != null ? String(booking.applied_price) : '',
       departure_date: booking.departure_date ? booking.departure_date.slice(0, 10) : ''
     });
@@ -133,7 +141,10 @@ const BookingsPage = () => {
         const payload: any = {
           id: selectedBooking.id,
           status: formData.status,
-          note: formData.note
+          note: formData.note,
+          document: formData.document,
+          phone: formData.phone,
+          nationality: formData.nationality
         };
         if (formData.applied_price !== '') {
           const price = Number(formData.applied_price);
@@ -141,6 +152,10 @@ const BookingsPage = () => {
         }
         if (formData.departure_date) {
           payload.departure_date = formData.departure_date; // already YYYY-MM-DD
+        }
+        if (formData.number_of_people !== '') {
+          const num = Number(formData.number_of_people);
+          if (!Number.isNaN(num) && num > 0) payload.number_of_people = num;
         }
         if (formData.tour_id != null) {
           payload.tour_id = formData.tour_id;
@@ -242,7 +257,7 @@ const BookingsPage = () => {
                     </TableCell>
                     <TableCell>{getTourName(booking.tour_id)}</TableCell>
                     <TableCell>{booking.number_of_people}</TableCell>
-                    <TableCell>{new Date(booking.departure_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{booking.departure_date}</TableCell>
                     <TableCell>${booking.applied_price}</TableCell>
                     <TableCell>
                       <Chip
@@ -341,6 +356,44 @@ const BookingsPage = () => {
                   <MenuItem value="canceled">Canceled</MenuItem>
                   <MenuItem value="unpaired">Unpaired</MenuItem>
                 </TextField>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Document"
+                  value={formData.document}
+                  onChange={(e) => setFormData({ ...formData, document: e.target.value })}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Nationality"
+                  value={formData.nationality}
+                  onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Number of People"
+                  value={formData.number_of_people}
+                  onChange={(e) => setFormData({ ...formData, number_of_people: e.target.value })}
+                  inputProps={{ min: 1 }}
+                />
               </Grid>
 
               <Grid item xs={12}>
