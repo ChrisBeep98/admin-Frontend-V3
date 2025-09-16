@@ -65,7 +65,9 @@ const BookingsPage = () => {
   const [formData, setFormData] = useState({
     tour_id: null as number | null,
     status: 'pending' as 'pending' | 'confirmed' | 'canceled' | 'unpaired',
-    note: ''
+    note: '',
+    applied_price: '' as string, // keep as text for input control
+    departure_date: '' as string // YYYY-MM-DD
   });
 
   const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -113,7 +115,9 @@ const BookingsPage = () => {
     setFormData({
       tour_id: booking.tour_id ?? null,
       status: booking.status,
-      note: booking.note || ''
+      note: booking.note || '',
+      applied_price: booking.applied_price != null ? String(booking.applied_price) : '',
+      departure_date: booking.departure_date ? booking.departure_date.slice(0, 10) : ''
     });
     setOpenDialog(true);
   };
@@ -131,6 +135,13 @@ const BookingsPage = () => {
           status: formData.status,
           note: formData.note
         };
+        if (formData.applied_price !== '') {
+          const price = Number(formData.applied_price);
+          if (!Number.isNaN(price)) payload.applied_price = price;
+        }
+        if (formData.departure_date) {
+          payload.departure_date = formData.departure_date; // already YYYY-MM-DD
+        }
         if (formData.tour_id != null) {
           payload.tour_id = formData.tour_id;
         }
@@ -273,13 +284,11 @@ const BookingsPage = () => {
               <Grid item xs={12}>
                 <Typography variant="h6">Customer: {selectedBooking.full_name}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Tour: {getTourName(selectedBooking.tour_id)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  People: {selectedBooking.number_of_people} • Price: ${selectedBooking.applied_price}
+                  People: {selectedBooking.number_of_people}
                 </Typography>
               </Grid>
-              <Grid item xs={12}>
+
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   select
@@ -296,7 +305,30 @@ const BookingsPage = () => {
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12}>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Departure Date"
+                  InputLabelProps={{ shrink: true }}
+                  value={formData.departure_date}
+                  onChange={(e) => setFormData({ ...formData, departure_date: e.target.value })}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Applied Price"
+                  type="number"
+                  value={formData.applied_price}
+                  onChange={(e) => setFormData({ ...formData, applied_price: e.target.value })}
+                  placeholder="Auto from tour tier or override"
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   select
@@ -310,6 +342,7 @@ const BookingsPage = () => {
                   <MenuItem value="unpaired">Unpaired</MenuItem>
                 </TextField>
               </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth

@@ -1,6 +1,6 @@
 # Nevado Trek Admin Frontend — Architecture & Project Context
 
-Version: 1.1
+Version: 1.2
 Last Updated: 2025-09-16
 
 This document provides a complete technical context for the Nevado Trek Admin Frontend. It covers goals, scope, architecture, module responsibilities, data models, flows, testing, and a roadmap to keep the project cohesive as it evolves.
@@ -69,7 +69,7 @@ Top-level (admin-frontend):
     - LoginPage.tsx — Token entry + validation (using a protected API call)
     - DashboardPage.tsx — Aggregate stats & quick navigation (Calendar quick action)
     - ToursPage.tsx — Tours CRUD + Itinerary management (inside details modal)
-    - BookingsPage.tsx — Bookings list, filter, edit (status/note/tour reassignment), delete
+    - BookingsPage.tsx — Bookings list, filter, edit (status/note/tour reassignment, applied price, departure date), delete
     - CalendarPage.tsx — Interactive bookings calendar (navigate months, hover day to list bookings, open/edit)
   - router/
     - AppRouter.tsx — Route definitions; protects admin routes via ProtectedRoute
@@ -89,6 +89,7 @@ Module responsibilities:
   - `apiCall(action, data)` using fetch
   - Attaches `Authorization` header from localStorage for all admin calls
   - Exports helpers for tours/itineraries/bookings
+  - Bookings support editing applied price and departure date (if backend accepts)
 - ToursPage:
   - Lists tours with key fields
   - Create/Edit via dialog
@@ -159,6 +160,7 @@ Routes
 - / — dashboard (protected)
 - /tours — tours + itineraries (protected)
 - /bookings — bookings (protected)
+- /calendar — interactive bookings calendar (protected)
 
 Auth flow
 1. Admin pastes a token in /login
@@ -186,8 +188,13 @@ Itinerary Management
 
 Bookings Management
 - List bookings; filter by status (includes `unpaired`)
-- Edit booking: change status, note; select a tour to (re)assign or set to Unpaired
+- Edit booking: change status, note; select a tour to (re)assign or set to Unpaired; edit applied price; change departure date
 - Delete booking when necessary
+
+Calendar
+- Navigate months; each day shows KPI chip with count of bookings
+- Hover a day to see bookings; click an item to open Edit Booking dialog
+- From dialog: update status and optionally applied price or date
 
 ---
 
