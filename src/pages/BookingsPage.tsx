@@ -32,7 +32,7 @@ import { getAllBookings, updateBooking, deleteBooking, getAllTours } from '../se
 
 interface Booking {
   id: number;
-  tour_id: number;
+  tour_id: number | null;
   full_name: string;
   document?: string;
   phone: string;
@@ -41,7 +41,7 @@ interface Booking {
   number_of_people: number;
   departure_date: string;
   applied_price: number;
-  status: 'pending' | 'confirmed' | 'canceled';
+  status: 'pending' | 'confirmed' | 'canceled' | 'unpaired';
   created_at: string;
 }
 
@@ -62,7 +62,8 @@ const BookingsPage = () => {
   const [statusFilter, setStatusFilter] = useState('');
 
   const [formData, setFormData] = useState({
-    status: 'pending' as 'pending' | 'confirmed' | 'canceled',
+    tour_id: null as number | null,
+    status: 'pending' as 'pending' | 'confirmed' | 'canceled' | 'unpaired',
     note: ''
   });
 
@@ -94,14 +95,16 @@ const BookingsPage = () => {
     }
   };
 
-  const getTourName = (tourId: number) => {
-    const tour = tours.find(t => t.id === tourId);
-    return tour ? tour.name : `Tour #${tourId}`;
+  const getTourName = (tourId: number | null) => {
+  if (tourId == null) return 'Unpaired';
+  const tour = tours.find(t => t.id === tourId);
+  return tour ? tour.name : `Tour #${tourId}`;
   };
 
   const handleOpenDialog = (booking: Booking) => {
     setSelectedBooking(booking);
     setFormData({
+      tour_id: booking.tour_id ?? null,
       status: booking.status,
       note: booking.note || ''
     });
@@ -116,11 +119,15 @@ const BookingsPage = () => {
   const handleSubmit = async () => {
     if (selectedBooking) {
       try {
-        await updateBooking({
+        const payload: any = {
           id: selectedBooking.id,
           status: formData.status,
           note: formData.note
-        });
+        };
+        if (formData.tour_id != null) {
+          payload.tour_id = formData.tour_id;
+        }
+        await updateBooking(payload);
         handleCloseDialog();
         loadBookings();
       } catch (err) {
@@ -147,6 +154,7 @@ const BookingsPage = () => {
       case 'confirmed': return 'success';
       case 'canceled': return 'error';
       case 'pending': return 'warning';
+      case 'unpaired': return 'warning';
       default: return 'default';
     }
   };
@@ -173,6 +181,7 @@ const BookingsPage = () => {
             <MenuItem value="pending">Pending</MenuItem>
             <MenuItem value="confirmed">Confirmed</MenuItem>
             <MenuItem value="canceled">Canceled</MenuItem>
+            <MenuItem value="unpaired">Unpaired</MenuItem>
           </TextField>
         </Box>
 
@@ -260,6 +269,23 @@ const BookingsPage = () => {
                 <TextField
                   fullWidth
                   select
+                  label="Tour"
+                  value={formData.tour_id ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value as any;
+                    setFormData({ ...formData, tour_id: val === '' ? null : Number(val) });
+                  }}
+                >
+                  <MenuItem value="">Unpaired</MenuItem>
+                  {tours.map((t) => (
+                    <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  select
                   label="Status"
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
@@ -267,6 +293,7 @@ const BookingsPage = () => {
                   <MenuItem value="pending">Pending</MenuItem>
                   <MenuItem value="confirmed">Confirmed</MenuItem>
                   <MenuItem value="canceled">Canceled</MenuItem>
+                  <MenuItem value="unpaired">Unpaired</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12}>

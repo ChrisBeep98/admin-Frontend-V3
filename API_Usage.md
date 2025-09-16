@@ -735,6 +735,88 @@ curl -X POST "https://donprqhxuezsyokucfht.supabase.co/functions/v1/nevado-trek-
 
 ---
 
+## Test Scenarios
+
+The following admin-focused scenarios validate the API behavior, including the automatic transition of related bookings to "unpaired" when a tour is deleted.
+
+Pre-requisites
+- A valid admin token.
+- For the "unpaired" behavior, ensure there is at least one booking attached to the tour before deletion (e.g., pre-seeded data or an existing booking in your environment).
+
+Scenario 1: Tours CRUD
+1) Create a tour (create_tour) with valid fields
+2) Fetch all tours (get_all_tours) and verify the created tour is present
+3) Update the tour (update_tour) with a few fields and verify changes via get_all_tours
+4) Delete the tour (delete_tour) and verify it no longer appears in get_all_tours
+
+Scenario 2: Itineraries CRUD
+1) Create a tour to attach itineraries
+2) Create itinerary day 1 (create_itinerary) with valid activities
+3) Fetch itineraries by tour_id (get_itineraries) and verify the created day exists
+4) Update day 1 activities (update_itinerary) and verify changes via get_itineraries
+5) Delete day 1 (delete_itinerary) and verify it is removed via get_itineraries
+
+Scenario 3: Delete Tour -> Bookings become "unpaired" and reassign
+1) Create Tour A (create_tour)
+2) Ensure there is at least one existing booking for Tour A (precondition)
+3) Delete Tour A (delete_tour)
+4) Fetch bookings filtered by status "unpaired" (get_bookings, { status: "unpaired" }) and verify affected booking(s) appear
+5) Create Tour B (create_tour)
+6) Reassign an unpaired booking to Tour B (update_booking with { id, tour_id: <TourB.id>, status: "pending" })
+7) Verify booking now appears when filtering get_bookings by tour_id = Tour B
+
+JavaScript (admin-only) snippets
+```javascript
+const baseUrl = 'https://donprqhxuezsyokucfht.supabase.co/functions/v1/nevado-trek-api';
+const adminToken = '<admin-token>';
+
+async function api(action, data) {
+  const res = await fetch(baseUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${adminToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ action, data })
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.error || 'Request failed');
+  return body;
+}
+
+// Example: create tour, delete it, and verify unpaired
+(async () => {
+  const tourAData = {
+    name: 'Test A', description: 'A', altitude: 4000, difficulty: 3, distance: 20,
+    temperature: 'Cold', days: 2, hours: 0,
+    price_one: 150, price_couple: 280, price_three_to_five: 400, price_six_plus: 500,
+    images: ['url1'], includes: ['Guide'], recommendations: ['Warm clothes'], status: 'active'
+  };
+  await api('create_tour', tourAData);
+  const tours = await api('get_all_tours');
+  const tourA = tours.find(t => t.name === 'Test A');
+
+  // PRECONDITION: ensure you have at least one booking attached to tourA in your environment
+
+  await api('delete_tour', { id: tourA.id });
+  const unpaired = await api('get_bookings', { status: 'unpaired' });
+  console.log('Unpaired bookings:', unpaired);
+
+  const tourBData = { ...tourAData, name: 'Test B' };
+  await api('create_tour', tourBData);
+  const tours2 = await api('get_all_tours');
+  const tourB = tours2.find(t => t.name === 'Test B');
+
+  if (unpaired.length) {
+    await api('update_booking', { id: unpaired[0].id, tour_id: tourB.id, status: 'pending' });
+    const reattached = await api('get_bookings', { tour_id: tourB.id });
+    console.log('Reattached bookings:', reattached);
+  }
+})();
+```
+
+---
+
 ## Best Practices
 
 ### 1. Error Handling

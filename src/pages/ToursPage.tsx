@@ -30,7 +30,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import { getAllTours, createTour, updateTour, deleteTour, getItineraries, createItinerary, updateItinerary, deleteItinerary, getAllBookings, deleteBooking } from '../services/api';
+import { getAllTours, createTour, updateTour, deleteTour, getItineraries, createItinerary, updateItinerary, deleteItinerary } from '../services/api';
 
 interface Tour {
   id: number;
@@ -213,25 +213,6 @@ const ToursPage = () => {
     if (!tourToDelete) return;
     try {
       setLoading(true);
-      // Delete related bookings first to avoid FK constraints
-      const bookings: any[] = await getAllBookings({ tour_id: tourToDelete.id });
-      if (Array.isArray(bookings)) {
-        for (const b of bookings) {
-          if (b?.id != null) {
-            await deleteBooking(b.id);
-          }
-        }
-      }
-      // Delete related itineraries
-      const its: Itinerary[] = await getItineraries({ tour_id: tourToDelete.id });
-      if (Array.isArray(its)) {
-        for (const it of its) {
-          if (it.id != null) {
-            await deleteItinerary(it.id);
-          }
-        }
-      }
-      // Finally delete the tour
       await deleteTour(tourToDelete.id);
       setDeleteConfirmOpen(false);
       setTourToDelete(null);
@@ -877,7 +858,7 @@ const ToursPage = () => {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete "{tourToDelete?.name}"? This action cannot be undone.
+            Are you sure you want to delete "{tourToDelete?.name}"? This action cannot be undone. Bookings attached to this tour will be marked as "unpaired" so they can be reassigned later.
           </Typography>
         </DialogContent>
         <DialogActions>
